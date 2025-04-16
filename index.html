@@ -15,7 +15,7 @@
             align-items: center;
             height: 100vh;
         }
-
+        
         #game-container {
             position: relative;
             width: 400px;
@@ -25,14 +25,14 @@
             border: 3px solid #ff6600;
             border-radius: 8px;
         }
-
+        
         #road {
             position: absolute;
             width: 100%;
             height: 100%;
             background-color: #444;
         }
-
+        
         .lane-marker {
             position: absolute;
             width: 10px;
@@ -41,7 +41,7 @@
             left: 50%;
             transform: translateX(-50%);
         }
-
+        
         #player {
             position: absolute;
             width: 60px;
@@ -50,21 +50,21 @@
             left: 170px;
             z-index: 100;
         }
-
+        
         .flint {
             position: absolute;
             width: 50px;
             height: 50px;
             border-radius: 5px;
         }
-
+        
         .cigar {
             position: absolute;
             width: 30px;
             height: 40px;
             border-radius: 5px;
         }
-
+        
         #score {
             position: absolute;
             top: 10px;
@@ -73,7 +73,7 @@
             font-size: 20px;
             z-index: 200;
         }
-
+        
         #speed {
             position: absolute;
             top: 40px;
@@ -82,7 +82,7 @@
             font-size: 18px;
             z-index: 200;
         }
-
+        
         #flint-count {
             position: absolute;
             top: 70px;
@@ -91,7 +91,7 @@
             font-size: 18px;
             z-index: 200;
         }
-
+        
         #game-over {
             position: absolute;
             top: 0;
@@ -105,13 +105,13 @@
             align-items: center;
             z-index: 300;
         }
-
+        
         #game-over h2 {
             color: #ff6600;
             font-size: 36px;
             margin-bottom: 20px;
         }
-
+        
         #game-over button {
             padding: 10px 20px;
             background-color: #ff6600;
@@ -121,9 +121,38 @@
             cursor: pointer;
             border-radius: 5px;
         }
-
+        
         #game-over button:hover {
             background-color: #ff8800;
+        }
+        
+        #audio-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 200;
+        }
+        
+        #audio-toggle {
+            background-color: rgba(255, 102, 0, 0.7);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #audio-toggle:hover {
+            background-color: #ff6600;
+        }
+        
+        #audio-icon {
+            width: 24px;
+            height: 24px;
         }
     </style>
 </head>
@@ -155,11 +184,25 @@
                 <path d="M25,30 Q30,32 35,30" stroke="#222" stroke-width="2" fill="none" />
             </svg>
         </div>
+        <div id="audio-controls">
+            <button id="audio-toggle">
+                <svg id="audio-icon" viewBox="0 0 24 24" fill="white">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+            </button>
+        </div>
         <div id="game-over">
             <h2>GAME OVER</h2>
             <button id="restart-btn">Play Again</button>
         </div>
     </div>
+    
+    <!-- Audio element for background music -->
+    <audio id="background-music" loop>
+        <!-- Using a placeholder URL. In a real implementation, you would provide the actual file path -->
+        <source src="https://example.com/go-hard-or-go-home.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 
     <script>
         // Game elements
@@ -171,7 +214,10 @@
         const flintCountElement = document.getElementById('flint-count');
         const gameOverScreen = document.getElementById('game-over');
         const restartBtn = document.getElementById('restart-btn');
-
+        const backgroundMusic = document.getElementById('background-music');
+        const audioToggle = document.getElementById('audio-toggle');
+        const audioIcon = document.getElementById('audio-icon');
+        
         // Game variables
         let score = 0;
         let gameSpeed = 5;
@@ -186,12 +232,30 @@
         let speedIncreaseInterval;
         let flintIncreaseInterval; // New interval for increasing maxFlints
         let distanceTraveled = 0;
-
+        let isMusicPlaying = false;
+        
+        // Audio control functions
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                backgroundMusic.pause();
+                audioIcon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+            } else {
+                backgroundMusic.volume = 0.5; // Set volume to 50%
+                backgroundMusic.play().catch(e => {
+                    console.log("Audio play failed:", e);
+                    // Handle autoplay restrictions
+                    alert("Please interact with the page to enable sound!");
+                });
+                audioIcon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+            }
+            isMusicPlaying = !isMusicPlaying;
+        }
+        
         // Create lane markers
         function createLaneMarkers() {
             const numMarkers = 10;
             const spacing = 600 / numMarkers;
-
+            
             for (let i = 0; i < numMarkers; i++) {
                 const marker = document.createElement('div');
                 marker.className = 'lane-marker';
@@ -200,55 +264,55 @@
                 laneMarkers.push(marker);
             }
         }
-
+        
         // Move lane markers to create illusion of movement
         function moveLaneMarkers() {
             laneMarkers.forEach(marker => {
                 let y = parseInt(marker.style.top);
                 y += gameSpeed;
-
+                
                 if (y > 600) {
                     y = -60;
                 }
-
+                
                 marker.style.top = y + 'px';
             });
         }
-
+        
         // Create a flint on the road
         function createFlint() {
             if (!gameRunning) return;
-
+            
             // Check if we've reached the flint limit
             if (flints.length >= maxFlints) {
                 return;
             }
-
+            
             const flint = document.createElement('div');
             flint.className = 'flint';
-
+            
             // Random lane position
             const lane = Math.floor(Math.random() * 3);
             let xPos;
-
+            
             if (lane === 0) xPos = 80;
             else if (lane === 1) xPos = 175;
             else xPos = 270;
-
+            
             // Place flint at random position on road
             flint.style.left = xPos + 'px';
             flint.style.top = (-200 - Math.random() * 800) + 'px'; // Position above road, will appear as player moves
-
+            
             // Add flint SVG
             const flintSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             flintSVG.setAttribute('width', '50');
             flintSVG.setAttribute('height', '50');
             flintSVG.setAttribute('viewBox', '0 0 50 50');
-
+            
             // Random flint color
             const stoneColors = ['#888888', '#777777', '#666666', '#999999', '#555555'];
             const stoneColor = stoneColors[Math.floor(Math.random() * stoneColors.length)];
-
+            
             // Create a jagged rock shape
             const flintPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             // Make each flint shape slightly different
@@ -262,34 +326,34 @@
                 [35 + Math.random() * 5, 10 + Math.random() * 5],
                 [20 + Math.random() * 5, 5 + Math.random() * 5]
             ];
-
+            
             // Create path string from points
             let pathData = `M${randomPoints[0][0]},${randomPoints[0][1]}`;
             for(let i = 1; i < randomPoints.length; i++) {
                 pathData += ` L${randomPoints[i][0]},${randomPoints[i][1]}`;
             }
             pathData += ' Z';
-
+            
             flintPath.setAttribute('d', pathData);
             flintPath.setAttribute('fill', stoneColor);
             flintPath.setAttribute('stroke', '#333');
             flintPath.setAttribute('stroke-width', '2');
-
+            
             // Add highlights/cracks to make flint more realistic
             const highlight = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            highlight.setAttribute('d', `M${15 + Math.random() * 10},${15 + Math.random() * 10}
+            highlight.setAttribute('d', `M${15 + Math.random() * 10},${15 + Math.random() * 10} 
                 L${25 + Math.random() * 10},${20 + Math.random() * 10}`);
             highlight.setAttribute('stroke', '#aaa');
             highlight.setAttribute('stroke-width', '1.5');
             highlight.setAttribute('fill', 'none');
-
+            
             flintSVG.appendChild(flintPath);
             flintSVG.appendChild(highlight);
             flint.appendChild(flintSVG);
-
+            
             gameContainer.appendChild(flint);
             flints.push(flint);
-
+            
             // Remove flints that are completely offscreen (below)
             flints = flints.filter(v => {
                 const rect = v.getBoundingClientRect();
@@ -301,25 +365,25 @@
                 return true;
             });
         }
-
+        
         // Create a cigar on the road
         function createCigar() {
             if (!gameRunning) return;
-
+            
             const cigar = document.createElement('div');
             cigar.className = 'cigar';
-
+            
             // Random position
             const xPos = 80 + Math.floor(Math.random() * 3) * 95; // Align with lanes better
             cigar.style.left = xPos + 'px';
             cigar.style.top = (-100 - Math.random() * 600) + 'px'; // Position above road
-
+            
             // Add cigar SVG
             const cigarSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             cigarSVG.setAttribute('width', '30');
             cigarSVG.setAttribute('height', '40');
             cigarSVG.setAttribute('viewBox', '0 0 30 40');
-
+            
             // Cigar body (brown cylinder)
             const cigarBody = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             cigarBody.setAttribute('x', '5');
@@ -328,7 +392,7 @@
             cigarBody.setAttribute('height', '25');
             cigarBody.setAttribute('fill', '#8B4513');
             cigarBody.setAttribute('rx', '3');
-
+            
             // Cigar band (red band in middle)
             const cigarBand = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             cigarBand.setAttribute('x', '5');
@@ -336,38 +400,38 @@
             cigarBand.setAttribute('width', '20');
             cigarBand.setAttribute('height', '4');
             cigarBand.setAttribute('fill', '#B22222');
-
+            
             // Cigar tip (ash/glow)
             const cigarTip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             cigarTip.setAttribute('cx', '15');
             cigarTip.setAttribute('cy', '10');
             cigarTip.setAttribute('r', '5');
             cigarTip.setAttribute('fill', '#FF4500');
-
+            
             // Smoke
             const smoke1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             smoke1.setAttribute('d', 'M15,5 Q18,3 17,1');
             smoke1.setAttribute('stroke', '#DDDDDD');
             smoke1.setAttribute('stroke-width', '1.5');
             smoke1.setAttribute('fill', 'none');
-
+            
             const smoke2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             smoke2.setAttribute('d', 'M13,5 Q10,2 12,0');
             smoke2.setAttribute('stroke', '#DDDDDD');
             smoke2.setAttribute('stroke-width', '1.5');
             smoke2.setAttribute('fill', 'none');
-
+            
             cigarSVG.appendChild(cigarBody);
             cigarSVG.appendChild(cigarBand);
             cigarSVG.appendChild(cigarTip);
             cigarSVG.appendChild(smoke1);
             cigarSVG.appendChild(smoke2);
-
+            
             cigar.appendChild(cigarSVG);
-
+            
             gameContainer.appendChild(cigar);
             cigars.push(cigar);
-
+            
             // Remove cigars that are completely offscreen (below)
             cigars = cigars.filter(f => {
                 const rect = f.getBoundingClientRect();
@@ -379,7 +443,7 @@
                 return true;
             });
         }
-
+        
         // Update the positions of all elements to create illusion of player movement
         function updatePositions() {
             // Move flints
@@ -387,20 +451,20 @@
                 let y = parseInt(flint.style.top) || -50;
                 y += gameSpeed;
                 flint.style.top = y + 'px';
-
+                
                 // Check for collision
                 if (checkCollision(player, flint)) {
                     gameOver();
                 }
             });
-
+            
             // Move cigars
             for (let i = cigars.length - 1; i >= 0; i--) {
                 const cigar = cigars[i];
                 let y = parseInt(cigar.style.top) || -40;
                 y += gameSpeed;
                 cigar.style.top = y + 'px';
-
+                
                 // Check for cigar collection
                 if (checkCollision(player, cigar)) {
                     cigar.remove();
@@ -409,31 +473,31 @@
                     scoreElement.textContent = `Score: ${score}`;
                 }
             }
-
+            
             // Track distance traveled
             distanceTraveled += gameSpeed;
-
+            
             // Add new objects periodically based on distance
             if (distanceTraveled % 200 < gameSpeed && flints.length < maxFlints) {
                 createFlint();
             }
-
+            
             if (distanceTraveled % 300 < gameSpeed) {
                 createCigar();
             }
         }
-
+        
         // Check collision between two elements
         function checkCollision(element1, element2) {
             const rect1 = element1.getBoundingClientRect();
             const rect2 = element2.getBoundingClientRect();
-
-            return !(rect1.right < rect2.left ||
-                    rect1.left > rect2.right ||
-                    rect1.bottom < rect2.top ||
+            
+            return !(rect1.right < rect2.left || 
+                    rect1.left > rect2.right || 
+                    rect1.bottom < rect2.top || 
                     rect1.top > rect2.bottom);
         }
-
+        
         // Move player horizontally
         function movePlayer() {
             if (keys.ArrowLeft) {
@@ -442,64 +506,72 @@
             if (keys.ArrowRight) {
                 playerX += 5;
             }
-
+            
             // Keep player on screen
             playerX = Math.max(0, Math.min(gameContainer.offsetWidth - player.offsetWidth, playerX));
             player.style.left = playerX + 'px';
         }
-
+        
         // Increase game speed
         function increaseSpeed() {
             if (!gameRunning) return;
-
+            
             speedMultiplier += 0.5;
             gameSpeed = 5 * speedMultiplier;
             speedElement.textContent = `Speed: ${speedMultiplier}x`;
-
+            
             // Make the player's flame character appear more intense with speed
             const playerSVG = player.querySelector('svg');
             const flamePath = playerSVG.querySelector('path');
-
+            
             // Update flame height based on speed
             const flameHeight = Math.min(15, 5 + speedMultiplier * 2);
             flamePath.setAttribute('d', `M20,15 Q25,${15-flameHeight} 30,10 Q35,${5-flameHeight} 40,15 Z`);
-
+            
             // Update flame color
             const r = Math.min(255, 255);
             const g = Math.max(0, Math.min(255, Math.floor(136 - speedMultiplier * 10)));
             const b = Math.max(0, Math.min(255, Math.floor(0)));
             flamePath.setAttribute('fill', `rgb(${r},${g},${b})`);
+            
+            // Increase music tempo with game speed (if we had actual audio processing)
+            // This would require Web Audio API for real implementation
+            if (isMusicPlaying) {
+                // Just a visual indicator that music would speed up
+                // In a real implementation, you'd use Web Audio API to change playback rate
+                audioToggle.style.transform = `scale(${1 + (speedMultiplier - 1) * 0.1})`;
+            }
         }
-
+        
         // Increase maximum number of flints
         function increaseMaxFlints() {
             if (!gameRunning) return;
-
+            
             maxFlints += 1;
             // Cap at a reasonable limit to prevent game from becoming impossible
             if (maxFlints > 20) {
                 maxFlints = 20;
             }
-
+            
             flintCountElement.textContent = `Max Flints: ${maxFlints}`;
-
+            
             // Create new flints if we're below the new max
             if (flints.length < maxFlints) {
                 createFlint();
             }
         }
-
+        
         // Game loop
         function gameLoop() {
             if (!gameRunning) return;
-
+            
             movePlayer();
             updatePositions();
             moveLaneMarkers();
-
+            
             requestAnimationFrame(gameLoop);
         }
-
+        
         // Start the game
         function startGame() {
             gameRunning = true;
@@ -513,59 +585,91 @@
             speedElement.textContent = `Speed: ${speedMultiplier}x`;
             flintCountElement.textContent = `Max Flints: ${maxFlints}`;
             gameOverScreen.style.display = 'none';
-
+            
+            // Reset audio button styling
+            audioToggle.style.transform = 'scale(1)';
+            
             // Clear existing elements
             flints.forEach(flint => flint.remove());
             flints = [];
             cigars.forEach(cigar => cigar.remove());
             cigars = [];
-
+            
             // Clear any existing timers
             clearInterval(speedIncreaseInterval);
             clearInterval(flintIncreaseInterval);
-
+            
             // Setup lane markers
             laneMarkers.forEach(marker => marker.remove());
             laneMarkers = [];
             createLaneMarkers();
-
+            
             // Create initial obstacles
             for (let i = 0; i < 2; i++) {
                 createFlint();
             }
-
+            
             for (let i = 0; i < 3; i++) {
                 createCigar();
             }
-
+            
             // Increase speed every 5 seconds
             speedIncreaseInterval = setInterval(increaseSpeed, 5000);
-
+            
             // Increase max flints every 2 seconds
             flintIncreaseInterval = setInterval(increaseMaxFlints, 2000);
-
+            
+            // Start background music if it was playing
+            if (isMusicPlaying) {
+                backgroundMusic.play().catch(e => console.log("Audio play failed:", e));
+            }
+            
             gameLoop();
         }
-
+        
         // Game over
         function gameOver() {
             gameRunning = false;
             clearInterval(speedIncreaseInterval);
             clearInterval(flintIncreaseInterval);
             gameOverScreen.style.display = 'flex';
+            
+            // Optional: Slow down or pause music when game is over
+            if (isMusicPlaying) {
+                // In a real implementation, you could fade out the music here
+                // For now, we'll just lower the volume
+                backgroundMusic.volume = 0.2;
+            }
         }
-
+        
         // Event listeners
         document.addEventListener('keydown', (e) => {
             keys[e.key] = true;
         });
-
+        
         document.addEventListener('keyup', (e) => {
             keys[e.key] = false;
         });
-
+        
         restartBtn.addEventListener('click', startGame);
-
+        audioToggle.addEventListener('click', toggleMusic);
+        
+        // Load audio when page is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize audio (note: audio won't play until user interaction due to browser policies)
+            backgroundMusic.volume = 0.5;
+            backgroundMusic.playbackRate = 1.0; // Normal speed initially
+            
+            // Add visual feedback for audio button
+            audioToggle.addEventListener('mousedown', () => {
+                audioToggle.style.transform = 'scale(0.95)';
+            });
+            
+            audioToggle.addEventListener('mouseup', () => {
+                audioToggle.style.transform = 'scale(1)';
+            });
+        });
+        
         // Start the game when the page loads
         window.onload = startGame;
     </script>
